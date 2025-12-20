@@ -8,6 +8,7 @@ const asyncHandler=(requestHandler)=>{
             )
 }
 }
+export {asyncHandler}
 
 // using try and catch
 
