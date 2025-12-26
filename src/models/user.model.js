@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken";
+import { ApiError } from "../utils/ApiError.js";
 const userSchema= new mongoose.Schema(
     {
         username:{
@@ -48,35 +49,46 @@ const userSchema= new mongoose.Schema(
 
 },
 {timestamps:true})
-userSchema.pre("save", async function (next) {
-   if (!this.isModified("password")) return next();
+userSchema.pre("save", async function () {
+   if (!this.isModified("password")) return;
    this.password = await bcrypt.hash(this.password, 10);
 });
 userSchema.methods.isPasswordCorrect = async function(password){
    return await bcrypt.compare(password,this.password)
 }
 userSchema.methods.generateAccessToken = function (){
-   return jwt.sign({
-        _id:this._id,
-        fullName:this.fullName,
-        username:this.username,
-        email:this.email
-    },
-    process.env.ACCESS_TOKEN_SECRET,
-    {
-        expiresIn:ACCESS_TOKEN_EXPIRY
-    }
-)
-}
-userSchema.methods.generateRefreshToken = function (){
-     return jwt.sign({
-        _id:this._id
+   try {
        
-    },
-    process.env.REFRESH_TOKEN_SECRET,
-    {
-        expiresIn:REFRESH_TOKEN_EXPIRY
-    }
-)
-}
+       return jwt.sign({
+            _id: this._id,
+            fullName: this.fullName,
+            username: this.username,
+            email: this.email
+        },
+        process.env.ACCESS_TOKEN_SECRET,
+        {
+            expiresIn: process.env.ACCESS_TOKEN_EXPIRY
+        }
+    );
+   } catch (error) {
+       console.error("Error generating access token:", error);
+       throw new ApiError("Failed to generate access token");
+      
+   }
+};
+userSchema.methods.generateRefreshToken = function () {
+   try {
+       return jwt.sign({
+            _id: this._id
+        },
+        process.env.REFRESH_TOKEN_SECRET,
+        {
+            expiresIn: process.env.REFRESH_TOKEN_EXPIRY
+        }
+    );
+   } catch (error) {
+       console.error("Error generating refresh token:", error);
+       throw new ApiError("Failed to generate refresh token");
+   }
+};
 export const User = mongoose.model("User", userSchema)

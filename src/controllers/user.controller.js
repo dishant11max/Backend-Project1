@@ -79,17 +79,17 @@ const generateAccessandRefreshToken = async (userId) => {
     const user = await User.findById(userId);
     const accessToken = user.generateAccessToken();
     const refreshToken = user.generateRefreshToken();
-
     user.refreshToken = refreshToken;
 
 
-    await user.save((validateBeforeSave = false));
+  await user.save({ validateBeforeSave: false });
 
     return{
         accessToken,
         refreshToken
     }
   } catch (error) {
+    console.error("Error in generateAccessandRefreshToken:", error);
     throw new ApiError(
       500,
       "Something went wrong from our side while generating tokens"
@@ -106,7 +106,7 @@ const loginUser = asyncHandler(async (req, res) => {
   // send response
 
   const { username, email, password } = req.body;
-  if (!username || !email) {
+  if (!username && !email) {
     throw new ApiError(400, "Username or Email is required");
   }
   const user = await User.findOne({
@@ -158,11 +158,13 @@ const logoutUser = asyncHandler(async(req,res)=>{
 )
 const options ={
     httpOnly:true,
-    secure:true }
+    secure:true
+   }
     return res
     .status(200)
     .clearCookie("refreshToken",options)
     .clearCookie("accessToken", options)
     .json(new ApiResponse(200,"User logged out successfully"))
 })
-export { registerUser, loginUser,logoutUser };
+
+export { registerUser, loginUser, logoutUser };
